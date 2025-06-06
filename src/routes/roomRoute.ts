@@ -6,10 +6,12 @@ import {
     updateRoom,
     deleteRoom
 } from "../services/roomService";
+import {CloudinaryUploader} from "../helper/cloudinary.config";
 
 const roomRoute = express.Router();
 
-roomRoute.post("/", createLiveRoom);
+// @ts-ignore
+roomRoute.post('/', CloudinaryUploader.single("thumbnail"), createLiveRoom);
 
 roomRoute.get("/", getAllRooms);
 

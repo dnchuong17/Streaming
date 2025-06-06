@@ -84,17 +84,18 @@ class LiveKitHelper {
             }
         );
 
-        console.log("LiveKit response:", res.data);
+        console.log("LiveKit response:", res);
 
         return {
             jobInfo: res.data,
             fileUrl: filepath,
             startedAt,
+            egressId: res.data.egressId
         };
     }
 
     async stopRecording(egressId: string) {
-        const token = this.generateEgressToken(); // giống như startRecording
+        const token = this.generateEgressToken();
 
         const res = await axios.post(
             `${this.baseUrl}/egress/stop`,
