@@ -37,6 +37,17 @@ const getStreamerById = async (req: Request, res: Response) => {
     }
 };
 
+const getStreamerByEmail = async (req: Request, res: Response) => {
+    const email = req.body;
+    try {
+        const foundStreamer = await streamer.findUnique({ where:  email });
+        if (foundStreamer) res.json(foundStreamer);
+        else res.status(404).json({ message: "Streamer not found" });
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching streamer", error });
+    }
+};
+
 const updateStreamer = async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const { name, email, avatarUrl } = req.body;
@@ -65,6 +76,7 @@ export {
     createStreamer,
     getAllStreamers,
     getStreamerById,
+    getStreamerByEmail,
     updateStreamer,
     deleteStreamer,
 };
