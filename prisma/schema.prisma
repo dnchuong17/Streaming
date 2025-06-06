@@ -1,0 +1,47 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Room {
+  id              Int       @id @default(autoincrement())
+  roomName        String    @unique
+  status          String    @default("active")
+  maxParticipants Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  streamerId      Int
+  streamer        Streamer  @relation(fields: [streamerId], references: [id])
+  categoryId      Int?
+  category        Category? @relation(fields: [categoryId], references: [id])
+  records         Record[]
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  rooms Room[]
+}
+
+model Streamer {
+  id        Int     @id @default(autoincrement())
+  name      String
+  email     String  @unique
+  avatarUrl String?
+  rooms     Room[]
+}
+
+model Record {
+  id        Int      @id @default(autoincrement())
+  fileUrl   String
+  startedAt DateTime @default(now())
+  endedAt   DateTime
+  roomId    Int
+  room      Room     @relation(fields: [roomId], references: [id])
+}
