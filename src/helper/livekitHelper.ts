@@ -16,16 +16,16 @@ class LiveKitHelper {
         const now = Math.floor(Date.now() / 1000);
         const payload: any = {
             iss: this.apiKey,
-            sub: identity,
+            sub: identity.toString(),
             iat: now,
             exp: now + 3600,
             video: { roomJoin: true, room: roomName },
         };
 
-        if (role === "BROADCASTER") {
+        if (role === "publisher") {
             payload.video["canPublish"] = true;
             payload.video["canSubscribe"] = true;
-        } else if (role === "USER") {
+        } else if (role === "subscriber") {
             payload.video["canPublish"] = false;
             payload.video["canSubscribe"] = true;
         } else {
@@ -36,12 +36,76 @@ class LiveKitHelper {
     }
 
     async createRoom(roomName: string, maxParticipants: number) {
-        const token = this.generateToken(roomName, "admin", "BROADCASTER");
+        const token = this.generateToken(roomName, "admin", "publisher");
         const res = await axios.post(
             `${this.baseUrl}/v1/rooms`,
             { name: roomName, max_participants: maxParticipants },
             { headers: { Authorization: `Bearer ${token}` } }
         );
+        return res.data;
+    }
+
+    generateEgressToken(): string {
+        const now = Math.floor(Date.now() / 1000);
+        return jwt.sign(
+            {
+                iss: this.apiKey,
+                iat: now,
+                exp: now + 3600,
+            },
+            this.apiSecret
+        );
+    }
+
+    async startRecording(roomName: string) {
+        const token = this.generateEgressToken();
+        const startedAt = new Date();
+
+        const filepath = `recordings/${roomName}-${Date.now()}.mp4`;
+
+        const res = await axios.post(
+            `${this.baseUrl}/egress/start`,
+            {
+                roomComposite: {
+                    roomName,
+                    layout: "grid",
+                    fileOutputs: [
+                        {
+                            fileType: "mp4",
+                            filepath,
+                        },
+                    ],
+                },
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        console.log("LiveKit response:", res.data);
+
+        return {
+            jobInfo: res.data,
+            fileUrl: filepath,
+            startedAt,
+        };
+    }
+
+    async stopRecording(egressId: string) {
+        const token = this.generateEgressToken(); // giống như startRecording
+
+        const res = await axios.post(
+            `${this.baseUrl}/egress/stop`,
+            { egressId },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
         return res.data;
     }
 }

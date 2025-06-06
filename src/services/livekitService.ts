@@ -25,17 +25,24 @@ const generateToken = (req: Request, res: Response) => {
 };
 
 const createRoom = async (req: Request, res: Response) => {
-    const { roomName, maxParticipants } = req.body;
+    const { roomName, maxParticipants, identity, roles } = req.body;
 
-    if (!roomName || !maxParticipants) {
-        return res.status(400).json({ message: "Missing required fields: roomName, maxParticipants" });
+    if (!roomName || !maxParticipants || !identity || !roles) {
+        return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    if (!roles.some((r: any) => r.name === "BROADCASTER")) {
+        return res.status(403).json({ message: "You are not allowed to create a room" });
     }
 
     try {
         const roomData = await liveKitHelper.createRoom(roomName, maxParticipants);
-        res.status(201).json({ roomData });
+
+        const token = liveKitHelper.generateToken(roomName, identity, "BROADCASTER");
+
+        return res.status(201).json({ roomData, token });
     } catch (error) {
-        res.status(500).json({ message: "Error creating room", error });
+        return res.status(500).json({ message: "Create Room Error", error });
     }
 };
 

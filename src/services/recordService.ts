@@ -1,21 +1,58 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
+import {liveKitHelper} from "../helper/livekitHelper";
 
 const { record } = new PrismaClient({
     log: ["query", "info", "warn", "error"]
 });
 
 const createRecord = async (req: Request, res: Response) => {
-    const { fileUrl, startedAt, endedAt, roomId } = req.body;
+    const { roomId, roomName } = req.body;
+
+    if (!roomId || !roomName) {
+        return res.status(400).json({ message: "Missing roomId or roomName" });
+    }
+
     try {
+        const { jobInfo, fileUrl, startedAt } = await liveKitHelper.startRecording(roomName);
+
+        console.log("Egress job info:", jobInfo);
+
         const newRecord = await record.create({
-            data: { fileUrl, startedAt, endedAt, roomId }
+            data: {
+                fileUrl,
+                startedAt,
+                roomId,
+                egressId: jobInfo.egressId
+            },
         });
-        res.status(201).json(newRecord);
+
+        res.status(201).json({ record: newRecord, jobInfo });
     } catch (error) {
-        res.status(500).json({ message: "Error creating record", error });
+        res.status(500).json({ message: "Failed to start and save recording", error });
     }
 };
+
+const stopRecording = async (req: Request, res: Response) => {
+    const { recordId } = req.body;
+
+    try {
+        const found = await record.findUnique({ where: { id: recordId } });
+        if (!found) return res.status(404).json({ message: "Record not found" });
+
+        const result = await liveKitHelper.stopRecording(found.egressId);
+
+        const updated = await record.update({
+            where: { id: recordId },
+            data: { endedAt: new Date() },
+        });
+
+        res.json({ stopped: result, updated });
+    } catch (err) {
+        res.status(500).json({ message: "Stop recording failed", error: err });
+    }
+};
+
 
 const getAllRecords = async (_req: Request, res: Response) => {
     try {
@@ -63,6 +100,7 @@ const deleteRecord = async (req: Request, res: Response) => {
 
 export {
     createRecord,
+    stopRecording,
     getAllRecords,
     getRecordById,
     updateRecord,

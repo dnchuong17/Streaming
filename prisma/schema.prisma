@@ -14,13 +14,14 @@ model Room {
   roomName        String    @unique
   status          String    @default("active")
   maxParticipants Int
+  thumbnail       String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   streamerId      Int
-  streamer        Streamer  @relation(fields: [streamerId], references: [id])
   categoryId      Int?
-  category        Category? @relation(fields: [categoryId], references: [id])
   records         Record[]
+  category        Category? @relation(fields: [categoryId], references: [id])
+  streamer        Streamer  @relation(fields: [streamerId], references: [id])
 }
 
 model Category {
@@ -38,10 +39,11 @@ model Streamer {
 }
 
 model Record {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   fileUrl   String
-  startedAt DateTime @default(now())
-  endedAt   DateTime
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
   roomId    Int
-  room      Room     @relation(fields: [roomId], references: [id])
+  egressId  String
+  room      Room      @relation(fields: [roomId], references: [id])
 }
